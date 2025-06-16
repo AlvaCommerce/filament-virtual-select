@@ -1,0 +1,52 @@
+{
+    "name": "alva/filament-virtual-select",
+    "description": "Filament Virtual Select",
+    "keywords": [
+        "alva",
+        "laravel",
+        "filament-virtual-select"
+    ],
+    "homepage": "https://alvacommerce.com/",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Andrii",
+            "email": "a.korposh@alvacommerce.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "laravel/framework": ">=11.0.0",
+        "filament/filament": ">=3.3.0",
+        "spatie/laravel-package-tools": "^1.13.5"
+    },
+    "require-dev": {
+    },
+    "autoload": {
+        "files": [],
+        "psr-4": {
+            "Alva\\FilamentVirtualSelect\\": "src"
+        }
+    },
+    "scripts": {
+        "analyse": "vendor/bin/phpstan analyse",
+        "test": "vendor/bin/pest",
+        "test-coverage": "vendor/bin/pest coverage"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "phpstan/extension-installer": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Alva\\FilamentVirtualSelect\\VirtualSelectServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

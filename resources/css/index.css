@@ -1,0 +1,14 @@
+@import '../../node_modules/virtual-select-plugin/dist/virtual-select.min.css';
+@import '../../node_modules/tooltip-plugin/dist/tooltip.min.css';
+
+.vscomp-toggle-button {
+    @apply border-0 rounded-lg border-none;
+}
+
+.vscomp-dropbox-container {
+    @apply border-0 rounded-lg border-none;
+}
+
+.vscomp-option.focused {
+    @apply bg-primary-200
+}
