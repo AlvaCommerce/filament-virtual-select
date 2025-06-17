@@ -49,6 +49,7 @@ export default function virtualSelectFormComponent({
                 allowHTML: isHtmlAllowed,
                 multiple: isMultiple,
                 search: isSearchable,
+                searchGroup: isSearchable,
                 autofocus: isAutofocused,
                 hideClearButton: !canSelectPlaceholder,
                 placeholder: placeholder,
@@ -62,7 +63,8 @@ export default function virtualSelectFormComponent({
                 loadingText: loadingMessage,
                 allOptionsSelectedText: allOptionsSelectedText,
                 optionsSelectedText: optionsSelectedText,
-                optionSelectedText: optionSelectedText
+                optionSelectedText: optionSelectedText,
+                zIndex: 99
             });
 
             this.select = this.$refs.input;
@@ -248,7 +250,7 @@ export default function virtualSelectFormComponent({
             let state = this.formatState(this.state)
 
             if ([null, undefined, '', [], {}].includes(state)) {
-                return {}
+                return []
             }
 
             const existingOptionValues = new Set()
@@ -267,7 +269,7 @@ export default function virtualSelectFormComponent({
 
             if (isMultiple) {
                 if (state.every((value) => existingOptionValues.has(value))) {
-                    return {}
+                    return []
                 }
 
                 return (await getOptionLabelsUsing())
