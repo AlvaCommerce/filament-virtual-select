@@ -93,14 +93,6 @@ export default function virtualSelectFormComponent({
 
             if (hasDynamicOptions) {
                 this.select.addEventListener('beforeOpen', async () => {
-                    this.select.setOptions([
-                        {
-                            label: loadingMessage,
-                            value: '',
-                            disabled: true,
-                        },
-                    ])
-
                     await this.refreshChoices()
                 })
             }
