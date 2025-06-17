@@ -167,8 +167,7 @@ export default function virtualSelectFormComponent({
         },
 
         destroy: function () {
-            this.select?.destroy()
-            this.select = null
+            this.select = null;
         },
 
         toggleSelectAll: function (state) {
@@ -182,7 +181,7 @@ export default function virtualSelectFormComponent({
                 return
             }
 
-            this.select.reset()
+            this.select?.reset(true)
             this.select.setOptions(choices)
 
             if (![null, undefined, ''].includes(this.state)) {
