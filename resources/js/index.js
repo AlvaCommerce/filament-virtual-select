@@ -76,6 +76,19 @@ export default function virtualSelectFormComponent({
                 this.select.setValue(this.formatState(this.state))
             }
 
+            this.select.addEventListener('change', () => {
+                if (this.isStateBeingUpdated) {
+                    return
+                }
+
+                this.isStateBeingUpdated = true
+                this.state = (this.select.getSelectedOptions() ?? [])
+                    .map(option => option.value)
+                    .filter(value => value !== '' && value !== null)
+
+                this.$nextTick(() => (this.isStateBeingUpdated = false))
+            })
+
             if (hasDynamicOptions) {
                 this.select.addEventListener('dropdown-open', async () => {
                     this.select.setOptions([
@@ -154,12 +167,11 @@ export default function virtualSelectFormComponent({
         },
 
         destroy: function () {
-            this.select.destroy()
+            this.select?.destroy()
             this.select = null
         },
 
         toggleSelectAll: function (state) {
-            console.log('toggleSelectAll', this.select, state);
             this.select.toggleSelectAll(state);
         },
 
@@ -204,8 +216,8 @@ export default function virtualSelectFormComponent({
             }
 
             return results.map((result) => {
-                if (result.choices) {
-                    result.choices = result.choices.map((groupedOption) => {
+                if (result.options) {
+                    result.options = result.options.map((groupedOption) => {
                         groupedOption.selected = Array.isArray(this.state)
                             ? this.state.includes(groupedOption.value)
                             : this.state === groupedOption.value
@@ -243,8 +255,8 @@ export default function virtualSelectFormComponent({
             const existingOptionValues = new Set()
 
             existingOptions.forEach((existingOption) => {
-                if (existingOption.choices) {
-                    existingOption.choices.forEach((groupedExistingOption) =>
+                if (existingOption.options) {
+                    existingOption.options.forEach((groupedExistingOption) =>
                         existingOptionValues.add(groupedExistingOption.value),
                     )
 

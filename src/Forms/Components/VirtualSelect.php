@@ -12,12 +12,11 @@ class VirtualSelect extends Select
     {
         parent::setUp();
 
-        $this->transformOptionsForJsUsing(static function (Select $component, array $options): array {
+        $this->transformOptionsForJsUsing(static function (VirtualSelect $component, array $options): array {
             return collect($options)
                 ->map(fn ($label, $value): array => is_array($label)
-                    ? ['label' => !empty($value) ? $value : __('No Group'), 'disabled' => false, 'options' => $component->transformOptionsForJs($label)]
+                    ? ['label' => $value, 'options' => $component->transformOptionsForJs($label)]
                     : ['label' => $label, 'value' => strval($value), 'disabled' => $component->isOptionDisabled($value, $label)])
-                ->sortBy(fn ($option) => in_array($option['label'], [__('No Group'), 'FR', 'EN']))
                 ->values()
                 ->all();
         });
