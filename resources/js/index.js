@@ -31,6 +31,9 @@ export default function virtualSelectFormComponent({
    allOptionsSelectedText,
    optionsSelectedText,
    optionSelectedText,
+   hideClearButton,
+   selectAllText,
+   clearAllText,
 }) {
     return {
         isSearching: false,
@@ -51,7 +54,6 @@ export default function virtualSelectFormComponent({
                 search: isSearchable,
                 searchGroup: isSearchable,
                 autofocus: isAutofocused,
-                hideClearButton: !canSelectPlaceholder,
                 placeholder: placeholder,
                 position: position ?? 'auto',
                 searchPlaceholderText: searchPrompt,
@@ -64,10 +66,18 @@ export default function virtualSelectFormComponent({
                 allOptionsSelectedText: allOptionsSelectedText,
                 optionsSelectedText: optionsSelectedText,
                 optionSelectedText: optionSelectedText,
+                hideClearButton: true, // Hide from main input
+                showDropboxAsPopup: false,
+                popupDropboxBreakpoint: '0px',
                 zIndex: 99
             });
 
             this.select = this.$refs.input;
+
+            // Add custom buttons to dropdown if multiple selection is enabled
+            if (isMultiple) {
+                this.addDropdownActions(hideClearButton, selectAllText, clearAllText);
+            }
 
             window.addEventListener('filament-virtual-select--selectAll-'+livewireId, () => this.toggleSelectAll(true));
             window.addEventListener('filament-virtual-select--removeAll-'+livewireId, () => this.toggleSelectAll(false));
@@ -95,6 +105,13 @@ export default function virtualSelectFormComponent({
                 this.select.addEventListener('beforeOpen', async () => {
                     await this.refreshChoices()
                 })
+            }
+
+            // Add actions on dropdown open for multiple select
+            if (isMultiple) {
+                this.select.addEventListener('beforeOpen', () => {
+                    this.addDropdownActions(hideClearButton, selectAllText, clearAllText);
+                });
             }
 
             if (hasDynamicSearchResults) {
@@ -164,8 +181,55 @@ export default function virtualSelectFormComponent({
             this.select = null;
         },
 
+        addDropdownActions: function (hideClearButton, selectAllText, clearAllText) {
+            this.$nextTick(() => {
+                const dropbox = this.$refs.input.parentElement.querySelector('.vscomp-dropbox');
+                if (!dropbox) return;
+
+                if (dropbox.querySelector('.vscomp-custom-actions')) return;
+
+                const actionsContainer = document.createElement('div');
+                actionsContainer.className = 'vscomp-custom-actions';
+
+                const selectAllBtn = document.createElement('button');
+                selectAllBtn.type = 'button';
+                selectAllBtn.className = 'vscomp-custom-action-btn vscomp-select-all-btn';
+                selectAllBtn.textContent = selectAllText;
+                selectAllBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    !this.select.isAllSelected() && this.toggleSelectAll(true);
+                });
+
+                const clearAllBtn = document.createElement('button');
+                clearAllBtn.type = 'button';
+                clearAllBtn.className = 'vscomp-custom-action-btn vscomp-clear-all-btn';
+                clearAllBtn.textContent = clearAllText;
+                clearAllBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.clearAll();
+                });
+
+                actionsContainer.appendChild(selectAllBtn);
+                if (!hideClearButton) {
+                    actionsContainer.appendChild(clearAllBtn);
+                }
+
+
+                const dropboxSearchWrapper = dropbox.querySelector('.vscomp-search-wrapper');
+                if (dropboxSearchWrapper) {
+                    dropboxSearchWrapper.appendChild(actionsContainer);
+                }
+            });
+        },
+
         toggleSelectAll: function (state) {
             this.select.toggleSelectAll(state);
+        },
+
+        clearAll: function () {
+            this.select.reset();
         },
 
         refreshChoices: async function (config = {}) {
