@@ -154,6 +154,9 @@
                             allOptionsSelectedText: @js($getAllOptionsSelectedText()),
                             optionsSelectedText: @js($getOptionsSelectedText()),
                             optionSelectedText: @js($getOptionSelectedText()),
+                            hideClearButton: @js($getHideClearButton()),
+                            selectAllText: @js($getSelectAllText()),
+                            clearAllText: @js($getClearAllText()),
                         })"
                 wire:ignore
                 x-on:keydown.esc="select.isDropdownOpen && $event.stopPropagation()"
