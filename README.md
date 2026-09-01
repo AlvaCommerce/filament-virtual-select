@@ -18,7 +18,8 @@ A Filament form component that enhances the standard Select field with a powerfu
 
 - PHP 8.2+
 - Laravel 11.28+
-- Filament 4.0+
+- Livewire 4.0+
+- Filament 5.0+
 
 ## Installation
 
