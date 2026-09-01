@@ -16,9 +16,9 @@ A Filament form component that enhances the standard Select field with a powerfu
 
 ## Requirements
 
-- PHP 8.1+
-- Laravel 11.0+
-- Filament 3.3.0+
+- PHP 8.2+
+- Laravel 11.28+
+- Filament 4.0+
 
 ## Installation
 
