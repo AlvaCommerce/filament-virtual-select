@@ -1,3 +1,9 @@
+@import 'tailwindcss';
+@reference '../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../src/**/*.php';
+@source '../../resources/views/**/*.blade.php';
+
 @import '../../node_modules/virtual-select-plugin/dist/virtual-select.min.css';
 @import '../../node_modules/tooltip-plugin/dist/tooltip.min.css';
 
