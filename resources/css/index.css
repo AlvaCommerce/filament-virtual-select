@@ -9,6 +9,13 @@
 
 .vscomp-toggle-button {
     @apply border-0 rounded-lg border-none;
+    width: 100% !important;
+}
+
+.vscomp-ele,
+.vscomp-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 .vscomp-dropbox-container {
