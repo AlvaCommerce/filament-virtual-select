@@ -12,6 +12,7 @@
     $suffixIcon = $getSuffixIcon();
     $suffixLabel = $getSuffixLabel();
     $statePath = $getStatePath();
+    $key = $getKey();
 @endphp
 
 <x-dynamic-component
@@ -37,6 +38,20 @@
                 ->class(['fi-fo-select'])
         "
     >
+        <style>
+            /* Ensure virtual-select expands to fill the wrapper width */
+            .vscomp-ele,
+            .vscomp-wrapper,
+            .vscomp-toggle-button {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+
+            .vscomp-toggle-button {
+                border-radius: 0.5rem;
+            }
+        </style>
+
         @if ((! ($isSearchable() || $isMultiple()) && $isNative()))
             <x-filament::input.select
                 :autofocus="$isAutofocused()"
@@ -120,16 +135,36 @@
                             canSelectPlaceholder: @js($canSelectPlaceholder),
                             isHtmlAllowed: @js($isHtmlAllowed()),
                             getOptionLabelUsing: async () => {
-                                return await $wire.getFormSelectOptionLabel(@js($statePath))
+                                return await Livewire.fireAction(
+                                    $wire.__instance,
+                                    'callSchemaComponentMethod',
+                                    [@js($key), 'getOptionLabel'],
+                                    { async: true },
+                                )
                             },
                             getOptionLabelsUsing: async () => {
-                                return await $wire.getFormSelectOptionLabels(@js($statePath))
+                                return await Livewire.fireAction(
+                                    $wire.__instance,
+                                    'callSchemaComponentMethod',
+                                    [@js($key), 'getOptionLabelsForJs'],
+                                    { async: true },
+                                )
                             },
                             getOptionsUsing: async () => {
-                                return await $wire.getFormSelectOptions(@js($statePath))
+                                return await Livewire.fireAction(
+                                    $wire.__instance,
+                                    'callSchemaComponentMethod',
+                                    [@js($key), 'getOptionsForJs'],
+                                    { async: true },
+                                )
                             },
                             getSearchResultsUsing: async (search) => {
-                                return await $wire.getFormSelectSearchResults(@js($statePath), search)
+                                return await Livewire.fireAction(
+                                    $wire.__instance,
+                                    'callSchemaComponentMethod',
+                                    [@js($key), 'getSearchResultsForJs', { search }],
+                                    { async: true },
+                                )
                             },
                             isAutofocused: @js($isAutofocused()),
                             isMultiple: @js($isMultiple()),
