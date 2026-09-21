@@ -12,6 +12,8 @@ class VirtualSelect extends Select
 
     protected bool | Closure $hideClearButton = false;
 
+    protected int | Closure $visibleOptionsCount = 5;
+
     protected string $view = 'filament-virtual-select::forms.components.virtual-select';
 
     protected function setUp(): void
@@ -38,20 +40,37 @@ class VirtualSelect extends Select
 
     public function getAllOptionsSelectedText(): string
     {
-        return __('All');
+        return __('filament-virtual-select::virtual-select.all_options_selected');
     }
 
     public function getOptionsSelectedText(): string
     {
-        return __('selected');
+        return __('filament-virtual-select::virtual-select.options_selected');
     }
 
     public function getOptionSelectedText(): string
     {
-        return __('selected');
+        return __('filament-virtual-select::virtual-select.option_selected');
     }
 
-    public function hideClearButton(bool | Closure $condition = false): static
+    /**
+     * How many options fit in the dropdown viewport before it scrolls. This is not
+     * Filament's `optionsLimit()`: the plugin virtualises the whole list, so every
+     * option is always reachable.
+     */
+    public function visibleOptionsCount(int | Closure $count): static
+    {
+        $this->visibleOptionsCount = $count;
+
+        return $this;
+    }
+
+    public function getVisibleOptionsCount(): int
+    {
+        return max(1, (int) $this->evaluate($this->visibleOptionsCount));
+    }
+
+    public function hideClearButton(bool | Closure $condition = true): static
     {
         $this->hideClearButton = $condition;
 
@@ -65,11 +84,11 @@ class VirtualSelect extends Select
 
     public function getSelectAllText(): string
     {
-        return __('Select All');
+        return __('filament-virtual-select::virtual-select.select_all');
     }
 
     public function getClearAllText(): string
     {
-        return __('Clear All');
+        return __('filament-virtual-select::virtual-select.clear_all');
     }
 }

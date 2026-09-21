@@ -13,9 +13,20 @@
 }
 
 .vscomp-ele,
-.vscomp-wrapper {
+.vscomp-wrapper,
+.vscomp-toggle-button {
     width: 100% !important;
     max-width: 100% !important;
+}
+
+/*
+ * The plugin re-renders the option window on every scroll event. Browser scroll
+ * anchoring then compensates for the replaced nodes and nudges scrollTop, which
+ * feeds another scroll event and makes the list drift.
+ */
+.vscomp-options-container,
+.vscomp-options-list {
+    overflow-anchor: none;
 }
 
 .vscomp-dropbox-container {

@@ -16,7 +16,7 @@ A Filament form component that enhances the standard Select field with a powerfu
 
 ## Requirements
 
-- PHP 8.2+
+- PHP 8.3+
 - Laravel 11.28+
 - Livewire 4.0+
 - Filament 5.0+
@@ -90,11 +90,24 @@ VirtualSelect::make('user')
 
 The VirtualSelect component extends Filament's Select component and adds the following methods:
 
-| Method | Description |
-|--------|-------------|
-| `getAllOptionsSelectedText()` | Customize the text shown when all options are selected |
-| `getOptionsSelectedText()` | Customize the text shown when multiple options are selected |
-| `getOptionSelectedText()` | Customize the text shown when a single option is selected |
+| Method | Default | Description |
+|--------|---------|-------------|
+| `visibleOptionsCount(int)` | `5` | How many options fit in the dropdown before it scrolls |
+| `hideClearButton(bool)` | `false` | Hide the "Clear All" button inside the dropdown (multiple selection only) |
+| `enableOptionAlias(bool)` | `true` | Build search aliases so non-adjacent words match, e.g. `Jean 514` matches `Jean Tremblay (ABC) 514-555-1234` |
+| `maxOptionAliases(int)` | `31` | Cap on aliases generated per option; aliases grow as 2^words, so this bounds the payload |
+
+Notes:
+
+- `optionsLimit()` has **no effect**: the plugin virtualises the whole list, so every option stays reachable. Use `visibleOptionsCount()` to change the dropdown height.
+- `maxItemsMessage()` is not rendered. Once `maxItems()` is reached the plugin simply stops accepting picks.
+- Option aliases are generated per option on every render and shipped to the browser. On large lists disable them with `enableOptionAlias(false)` or lower `maxOptionAliases()`.
+
+Translations live in `resources/lang/{en,fr}/virtual-select.php` and can be overridden with:
+
+```bash
+php artisan vendor:publish --tag=filament-virtual-select-translations
+```
 
 You can also use all the methods available in Filament's Select component:
 

@@ -2,7 +2,6 @@ import 'virtual-select-plugin/dist/virtual-select.min.js';
 import 'tooltip-plugin/dist/tooltip.min.js'
 
 export default function virtualSelectFormComponent({
-   canSelectPlaceholder,
    isHtmlAllowed,
    getOptionLabelUsing,
    getOptionLabelsUsing,
@@ -16,10 +15,10 @@ export default function virtualSelectFormComponent({
    livewireId,
    loadingMessage,
    maxItems,
-   maxItemsMessage,
+   noOptionsMessage,
    noSearchResultsMessage,
    options,
-   optionsLimit,
+   visibleOptionsCount,
    placeholder,
    position,
    searchDebounce,
@@ -36,13 +35,13 @@ export default function virtualSelectFormComponent({
    clearAllText,
 }) {
     return {
-        isSearching: false,
-
         select: null,
 
-        selectedOptions: [],
-
         isStateBeingUpdated: false,
+
+        hasDropdownActions: false,
+
+        windowEventListeners: [],
 
         state,
 
@@ -57,10 +56,10 @@ export default function virtualSelectFormComponent({
                 placeholder: placeholder,
                 position: position ?? 'auto',
                 searchPlaceholderText: searchPrompt,
-                noOptionsText: searchPrompt,
+                noOptionsText: noOptionsMessage,
                 noSearchResultsText: noSearchResultsMessage,
                 searchFields: searchableOptionFields ?? ['label'],
-                optionsCount: optionsLimit,
+                optionsCount: visibleOptionsCount,
                 maxValues: maxItems ?? 0,
                 loadingText: loadingMessage,
                 allOptionsSelectedText: allOptionsSelectedText,
@@ -74,18 +73,14 @@ export default function virtualSelectFormComponent({
 
             this.select = this.$refs.input;
 
+            this.preventHoverScroll();
+
             // Add custom buttons to dropdown if multiple selection is enabled
             if (isMultiple) {
                 this.addDropdownActions(hideClearButton, selectAllText, clearAllText);
-            }
 
-            window.addEventListener('filament-virtual-select--selectAll-'+livewireId, () => this.toggleSelectAll(true));
-            window.addEventListener('filament-virtual-select--removeAll-'+livewireId, () => this.toggleSelectAll(false));
-
-            await this.refreshChoices({ withInitialOptions: true })
-
-            if (![null, undefined, ''].includes(this.state)) {
-                this.select.setValue(this.formatState(this.state))
+                this.addWindowEventListener('filament-virtual-select--selectAll-' + livewireId, () => this.toggleSelectAll(true));
+                this.addWindowEventListener('filament-virtual-select--removeAll-' + livewireId, () => this.toggleSelectAll(false));
             }
 
             this.select.addEventListener('change', () => {
@@ -94,9 +89,7 @@ export default function virtualSelectFormComponent({
                 }
 
                 this.isStateBeingUpdated = true
-                this.state = (this.select.getSelectedOptions() ?? [])
-                    .map(option => option.value)
-                    .filter(value => value !== '' && value !== null)
+                this.state = this.getSelectedValues()
 
                 this.$nextTick(() => (this.isStateBeingUpdated = false))
             })
@@ -118,8 +111,8 @@ export default function virtualSelectFormComponent({
                 this.select.addEventListener('search', async (event) => {
                     let search = event.detail.value?.trim()
 
-                    this.isSearching = true
-
+                    // `true` keeps the current selection (and its label) while the
+                    // placeholder row is shown, and skips the plugin's own `reset()`.
                     this.select.setOptions([
                         {
                             label: [null, undefined, ''].includes(search)
@@ -128,7 +121,9 @@ export default function virtualSelectFormComponent({
                             value: '',
                             disabled: true,
                         },
-                    ])
+                    ], true)
+
+                    this.select.virtualSelect?.updatePosition()
                 })
 
                 this.select.addEventListener(
@@ -137,14 +132,12 @@ export default function virtualSelectFormComponent({
                         await this.refreshChoices({
                             search: event.detail.value?.trim(),
                         })
-
-                        this.isSearching = false
                     }, searchDebounce),
                 )
             }
 
             if (!isMultiple) {
-                window.addEventListener(
+                this.addWindowEventListener(
                     'filament-forms::select.refreshSelectedOptionLabel',
                     async (event) => {
                         if (event.detail.livewireId !== livewireId) {
@@ -171,17 +164,123 @@ export default function virtualSelectFormComponent({
                     return
                 }
 
+                // Livewire echoes the state back after every round trip. Rebuilding the
+                // option list when it already matches only costs a request and a reflow.
+                if (this.isStateInSyncWithSelection()) {
+                    return
+                }
+
                 await this.refreshChoices({
                     withInitialOptions: !hasDynamicOptions,
                 })
             })
+
+            // Last, because it may await a round trip for labels of options that are
+            // not in the initial set — the listeners above must already be in place.
+            await this.refreshChoices({ withInitialOptions: true })
         },
 
         destroy: function () {
+            this.windowEventListeners.forEach(([event, listener]) =>
+                window.removeEventListener(event, listener),
+            )
+
+            this.windowEventListeners = []
+
+            this.select?.destroy?.()
             this.select = null;
         },
 
+        /**
+         * On mouseover the plugin focuses the hovered option and scrolls it into view.
+         * Both fight its own virtual scrolling: `focus()` scrolls the option list, that
+         * scroll re-renders the option window, and the list creeps upwards under a
+         * moving pointer — while every `focus()` forces a layout. Keyboard navigation
+         * still scrolls the focused option into view.
+         */
+        preventHoverScroll: function () {
+            const instance = this.select?.virtualSelect
+
+            if (!instance) {
+                return
+            }
+
+            const focusOption = instance.focusOption
+            const moveFocusedOptionToView = instance.moveFocusedOptionToView
+            const toggleOptionFocusedState = instance.toggleOptionFocusedState
+
+            instance.toggleOptionFocusedState = function ($option, isFocused) {
+                if (!$option) {
+                    return toggleOptionFocusedState.call(this, $option, isFocused)
+                }
+
+                const focus = $option.focus
+                $option.focus = (options) => focus.call($option, { ...options, preventScroll: true })
+
+                try {
+                    return toggleOptionFocusedState.call(this, $option, isFocused)
+                } finally {
+                    delete $option.focus
+                }
+            }
+
+            instance.focusOption = function (config = {}) {
+                // `$option` is only passed by the mouseover handler.
+                if (!config.$option) {
+                    return focusOption.call(this, config)
+                }
+
+                this.moveFocusedOptionToView = () => {}
+
+                try {
+                    return focusOption.call(this, config)
+                } finally {
+                    this.moveFocusedOptionToView = moveFocusedOptionToView
+                }
+            }
+        },
+
+        /**
+         * Tracks the listener so it can be detached when the component is torn down,
+         * otherwise every modal open leaks a listener bound to a dead component.
+         */
+        addWindowEventListener: function (event, listener) {
+            this.windowEventListeners.push([event, listener])
+
+            window.addEventListener(event, listener)
+        },
+
+        getSelectedValues: function () {
+            const selectedOptions = this.select.getSelectedOptions() ?? []
+
+            const values = (Array.isArray(selectedOptions) ? selectedOptions : [selectedOptions])
+                .map((option) => option?.value)
+                .filter((value) => value !== '' && value !== null && value !== undefined)
+
+            return isMultiple ? values : (values[0] ?? null)
+        },
+
+        isStateInSyncWithSelection: function () {
+            const selectedValues = this.normalizeForComparison(this.getSelectedValues())
+            const stateValues = this.normalizeForComparison(this.formatState(this.state))
+
+            return selectedValues.length === stateValues.length &&
+                selectedValues.every((value, index) => value === stateValues[index])
+        },
+
+        normalizeForComparison: function (value) {
+            return [value ?? []]
+                .flat()
+                .filter((item) => ![null, undefined, ''].includes(item))
+                .map((item) => item.toString())
+                .sort()
+        },
+
         addDropdownActions: function (hideClearButton, selectAllText, clearAllText) {
+            if (this.hasDropdownActions) {
+                return;
+            }
+
             this.$nextTick(() => {
                 const dropbox = this.$refs.input.parentElement.querySelector('.vscomp-dropbox');
                 if (!dropbox) return;
@@ -220,6 +319,8 @@ export default function virtualSelectFormComponent({
                 const dropboxSearchWrapper = dropbox.querySelector('.vscomp-search-wrapper');
                 if (dropboxSearchWrapper) {
                     dropboxSearchWrapper.appendChild(actionsContainer);
+
+                    this.hasDropdownActions = true;
                 }
             });
         },
@@ -239,16 +340,33 @@ export default function virtualSelectFormComponent({
                 return
             }
 
-            this.select?.reset(true)
-            this.select.setOptions(choices)
-
-            if (![null, undefined, ''].includes(this.state)) {
-                this.select.setValue(this.formatState(this.state))
-            }
+            this.setChoices(choices)
         },
 
+        /**
+         * `setOptions()` without the second argument makes the plugin call `reset()`,
+         * which wipes the selection and dispatches a `change` event — on a `live()`
+         * field that means an extra round trip plus a visible jump. Passing `true`
+         * keeps the selection, and the silent `setValue()` re-applies the current
+         * state without emitting another `change`.
+         */
         setChoices: function (choices) {
-            this.select.setOptions(choices)
+            const state = this.formatState(this.state)
+
+            this.isStateBeingUpdated = true
+
+            this.select.setOptions(choices, true)
+            this.select.setValue(state ?? null, true)
+
+            // The dropbox is anchored once, when it opens, and the plugin never
+            // re-anchors it (`disableUpdatePosition` is on for an inline dropbox).
+            // Options fetched on `beforeOpen` land after that, so a box that was
+            // measured while still empty keeps the offset of an empty box and ends
+            // up covering the field. Re-anchor it against its real height; the
+            // plugin's own method is a no-op while the dropdown is closed.
+            this.select.virtualSelect?.updatePosition()
+
+            this.$nextTick(() => (this.isStateBeingUpdated = false))
         },
 
         getChoices: async function (config = {}) {
@@ -305,7 +423,7 @@ export default function virtualSelectFormComponent({
         getMissingOptions: async function (existingOptions) {
             let state = this.formatState(this.state)
 
-            if ([null, undefined, '', [], {}].includes(state)) {
+            if ([null, undefined, ''].includes(state) || (Array.isArray(state) && !state.length)) {
                 return []
             }
 
@@ -338,7 +456,7 @@ export default function virtualSelectFormComponent({
             }
 
             if (existingOptionValues.has(state)) {
-                return existingOptionValues
+                return []
             }
 
             return [
