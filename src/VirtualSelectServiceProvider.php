@@ -15,15 +15,11 @@ class VirtualSelectServiceProvider extends PackageServiceProvider
 
     public static string $viewNamespace = 'filament-virtual-select';
 
-    public function registeringPackage()
-    {
-
-    }
-
     public function configurePackage(Package $package): void
     {
         $package
-            ->name(static::$name);
+            ->name(static::$name)
+            ->hasTranslations();
 
         if (file_exists($package->basePath('/../resources/views'))) {
             $package->hasViews(static::$viewNamespace);
@@ -37,10 +33,6 @@ class VirtualSelectServiceProvider extends PackageServiceProvider
             $this->getAssets(),
             $this->getAssetPackageName()
         );
-    }
-
-    public function packageRegistered(): void
-    {
     }
 
     protected function getAssetPackageName(): ?string

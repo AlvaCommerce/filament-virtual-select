@@ -13,6 +13,9 @@
     $suffixLabel = $getSuffixLabel();
     $statePath = $getStatePath();
     $key = $getKey();
+    $livewireKey = $getLivewireKey();
+    $isHtmlAllowed = $isHtmlAllowed();
+    $focusInputExpression = "\$el.querySelector('.vscomp-toggle-button')?.focus()";
 @endphp
 
 <x-dynamic-component
@@ -35,24 +38,12 @@
         :valid="! $errors->has($statePath)"
         :attributes="
             \Filament\Support\prepare_inherited_attributes($getExtraAttributeBag())
+                ->merge(['x-on:focus-input.stop' => $focusInputExpression], escape: false)
                 ->class(['fi-fo-select'])
         "
     >
-        <style>
-            /* Ensure virtual-select expands to fill the wrapper width */
-            .vscomp-ele,
-            .vscomp-wrapper,
-            .vscomp-toggle-button {
-                width: 100% !important;
-                max-width: 100% !important;
-            }
 
-            .vscomp-toggle-button {
-                border-radius: 0.5rem;
-            }
-        </style>
-
-        @if ((! ($isSearchable() || $isMultiple()) && $isNative()))
+        @if ((! ($isSearchable() || $isMultiple() || $isHtmlAllowed)) && $isNative())
             <x-filament::input.select
                 :autofocus="$isAutofocused()"
                 :disabled="$isDisabled"
@@ -67,10 +58,6 @@
                         ], escape: false)
                 "
             >
-                @php
-                    $isHtmlAllowed = $isHtmlAllowed();
-                @endphp
-
                 @if ($canSelectPlaceholder)
                     <option value="">
                         @if (! $isDisabled)
@@ -132,8 +119,7 @@
                 @endif
                 x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('filament-virtual-select', 'alva/filament-virtual-select') }}"
                 x-data="virtualSelectFormComponent({
-                            canSelectPlaceholder: @js($canSelectPlaceholder),
-                            isHtmlAllowed: @js($isHtmlAllowed()),
+                            isHtmlAllowed: @js($isHtmlAllowed),
                             getOptionLabelUsing: async () => {
                                 return await Livewire.fireAction(
                                     $wire.__instance,
@@ -174,10 +160,10 @@
                             hasDynamicSearchResults: @js($hasDynamicSearchResults()),
                             loadingMessage: @js($getLoadingMessage()),
                             maxItems: @js($getMaxItems()),
-                            maxItemsMessage: @js($getMaxItemsMessage()),
+                            noOptionsMessage: @js($getNoOptionsMessage()),
                             noSearchResultsMessage: @js($getNoSearchResultsMessage()),
                             options: @js($getOptionsForJs()),
-                            optionsLimit: @js($getOptionsLimit()),
+                            visibleOptionsCount: @js($getVisibleOptionsCount()),
                             placeholder: @js($getPlaceholder()),
                             position: @js($getPosition()),
                             searchDebounce: @js($getSearchDebounce()),
@@ -194,7 +180,8 @@
                             clearAllText: @js($getClearAllText()),
                         })"
                 wire:ignore
-                x-on:keydown.esc="select.isDropdownOpen && $event.stopPropagation()"
+                wire:key="{{ $livewireKey }}.{{ substr(md5(serialize([$isDisabled])), 0, 64) }}"
+                x-on:keydown.esc="select?.virtualSelect?.isOpened() && $event.stopPropagation()"
                 x-on:set-select-property="$event.detail.isDisabled ? select.disable() : select.enable()"
                 {{
                     $attributes
